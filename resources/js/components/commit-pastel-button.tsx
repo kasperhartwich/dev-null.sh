@@ -5,6 +5,7 @@ import { store } from '@/actions/App/Http/Controllers/CommitPastelController';
 import { ActionTooltip } from '@/components/action-tooltip';
 import { useCommitNotFound } from '@/hooks/use-deleted-resources';
 import { useNow } from '@/hooks/use-now';
+import { useOwnsCommit } from '@/hooks/use-owns-commit';
 import { refreshSharedState, useSharedState } from '@/hooks/use-shared-state';
 import { commitStateKey } from '@/lib/commit-state';
 import { formatCount, formatExactCount } from '@/lib/numbers';
@@ -26,6 +27,7 @@ export function CommitPastelButton({
 }) {
     const { auth } = usePage().props;
     const commitNotFound = useCommitNotFound();
+    const ownsCommit = useOwnsCommit();
     const day = useNow().toISOString().slice(0, 10);
     const [count, setCount] = useSharedState(
         commitStateKey('pasteis_count', commit.id),
@@ -70,8 +72,7 @@ export function CommitPastelButton({
     }
 
     const userId = auth.user.id;
-    const isOwn = commit.author.id === userId;
-    const readOnly = isOwn || commit.status !== 'approved';
+    const readOnly = ownsCommit(commit) || commit.status !== 'approved';
     const label = `${formatExactCount(count)} ${count === 1 ? 'pastel' : 'pastéis'}`;
 
     const award = async () => {
