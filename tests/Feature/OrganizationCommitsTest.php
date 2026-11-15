@@ -279,3 +279,20 @@ it('lets a member restore a commit of the organization whose poster deleted thei
 
     expect($commit->refresh()->trashed())->toBeFalse();
 });
+
+it("shows the web what it needs to tell a member that an organization's commits and replies are theirs", function (): void {
+    $commit = Commit::factory()->for($this->member)->create(['author_id' => $this->organization->id]);
+    $reply = Commit::factory()->for($this->member)->create(['author_id' => $this->organization->id, 'parent_id' => $commit->id]);
+
+    $this->actingAs($this->member)->get(route('log.show', Log::Latest))
+        ->assertInertia(fn ($page) => $page
+            ->where('auth.organizations.0.id', $this->organization->id)
+            ->where('commits.data', fn ($commits): bool => collect($commits)->contains(
+                fn (array $shown): bool => $shown['id'] === $commit->id
+                    && $shown['author']['type'] === 'organization'
+                    && $shown['author']['id'] === $this->organization->id,
+            )));
+
+    $this->post(route('commit-star.store', $reply))->assertForbidden();
+    $this->post(route('commit-pastel.store', $reply))->assertForbidden();
+});
